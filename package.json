@@ -7,8 +7,10 @@
   "scripts": {
     "dev:server": "tsx watch src/api/server.ts",
     "dev:bot": "tsx watch src/bot/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/api/server.js",
+    "start": "node dist/index.js",
+    "api": "node dist/api/server.js",
     "bot": "node dist/bot/index.js",
     "lint": "eslint ."
   },

@@ -13,12 +13,7 @@ dotenv.config();
 const PORT = process.env.PORT || 3000;
 const app = new Elysia({ adapter: node() });
 
-app.onRequest(({ request }) => {
-  console.log(`[HTTP] ${request.method} ${request.url}`);
-});
-
 app.use(oauthRoutes);
-
 app.get("/", () => {
   return { status: "ok", service: "Epic / Fortnite Discord User App Widget Service" };
 });
