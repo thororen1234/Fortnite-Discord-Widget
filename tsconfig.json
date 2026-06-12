@@ -16,12 +16,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "jsx": "preserve",
     "allowJs": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "include": [
-    "src/**/*",
-    "eslint.config.mjs"
+    "src/**/*"
   ]
 }

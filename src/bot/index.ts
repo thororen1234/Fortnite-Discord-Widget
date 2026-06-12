@@ -58,7 +58,7 @@ client.on(Events.InteractionCreate, async interaction => {
     const modal = new ModalBuilder()
       .setCustomId("epic_code_modal")
       .setTitle("Enter Epic Auth Code");
-    
+
     const codeInput = new TextInputBuilder()
       .setCustomId("auth_code_input")
       .setLabel("32-character Authorization Code")
@@ -66,9 +66,9 @@ client.on(Events.InteractionCreate, async interaction => {
       .setRequired(true)
       .setMinLength(32)
       .setMaxLength(32);
-      
+
     modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(codeInput));
-    
+
     await interaction.showModal(modal);
     return;
   }
@@ -80,19 +80,19 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
       const deviceAuth = await generateDeviceAuthFromCode(authCode);
       await updateUserAccount(userId, { fortniteDeviceAuth: deviceAuth });
-      
+
       const embed = new EmbedBuilder()
         .setTitle("Epic Games Account Linked!")
         .setDescription("Your Fortnite account has been successfully authenticated. You can now use `/refresh` to update your stats and locker.")
         .setColor(0x00ff00);
-      
+
       await interaction.editReply({ embeds: [embed] });
     } catch (error: any) {
       const embed = new EmbedBuilder()
         .setTitle("Authentication Failed")
         .setDescription(`There was an error linking your Epic Games account. The code may be invalid or expired. Please try again.\n\nError: ${error.message}`)
         .setColor(0xff0000);
-      
+
       await interaction.editReply({ embeds: [embed] });
     }
     return;

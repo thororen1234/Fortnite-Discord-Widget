@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+
 import type { FortniteDeviceAuth } from "../database/mongo.js";
 import type { FortniteStats, McpItem, McpLockerData, StatProxyData } from "../types/fortnite.types.js";
 import { decrypt, encrypt } from "../utils/crypto.js";
@@ -242,7 +243,7 @@ async function fetchStatsData(accountId: string, token: string): Promise<StatPro
 export async function getFortniteStats(deviceAuth: FortniteDeviceAuth, displayName: string): Promise<FortniteStats> {
   try {
     const token = await getUserToken(deviceAuth);
-    const accountId = deviceAuth.accountId;
+    const { accountId } = deviceAuth;
     const [locker, stats] = await Promise.all([
       fetchLockerData(accountId, token).catch(err => {
         console.warn("[Fortnite] MCP locker fetch failed:", err.message);
