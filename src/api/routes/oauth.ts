@@ -37,6 +37,7 @@ oauthRoutes.get("/api/auth/discord/callback", async ({ query, set }) => {
       discordOAuth: tokenInfo,
       externalAccountId: `EXT-${userId.slice(-8)}`,
       epicDisplayName: epicConnection.name,
+      epicAccountId: epicConnection.id,
     });
 
     if (!success) {
@@ -55,12 +56,30 @@ oauthRoutes.get("/api/auth/discord/callback", async ({ query, set }) => {
           body: JSON.stringify({
             embeds: [
               {
-                title: "Account Linked!",
-                description: `Successfully linked to Epic Games account: **${epicConnection.name}**\n\nYou can now run \`/refresh\` in Discord to update your profile card!`,
+                title: "Discord Linked!",
+                description: `Successfully linked to Epic Games account: **${epicConnection.name}**\n\n**Next Steps:**\n1. Click **Get Epic Auth Code** below, sign in, and copy the 32-character code.\n2. Click **Enter Code** and paste it there!`,
                 color: 0x00ff00,
               }
             ],
-            components: [],
+            components: [
+              {
+                type: 1,
+                components: [
+                  {
+                    type: 2,
+                    label: "Get Epic Auth Code",
+                    style: 5,
+                    url: "https://www.epicgames.com/id/api/redirect?clientId=3f69e56c7649492c8cc29f1af08a8a12&responseType=code"
+                  },
+                  {
+                    type: 2,
+                    label: "Enter Code",
+                    style: 1,
+                    custom_id: "enter_epic_code"
+                  }
+                ]
+              }
+            ],
           }),
         }).catch(err => console.error("Failed to update interaction:", err));
       }
@@ -68,7 +87,7 @@ oauthRoutes.get("/api/auth/discord/callback", async ({ query, set }) => {
 
     set.status = 200;
     set.headers = { "content-type": "text/plain; charset=utf-8" };
-    return "Successfully Authenticated\nAccount Successfully Linked!\n\nYour Fortnite profile is now connected. You can safely close this browser window and run /refresh in Discord to update your profile widget card.";
+    return "Successfully Authenticated\nAccount Successfully Linked!\n\nYour Discord is now connected. Please go back to Discord and click the 'Get Epic Auth Code' button to finish the setup.";
   } catch (error: any) {
     console.error("OAuth authentication error:", error);
     set.status = 500;

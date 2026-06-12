@@ -16,12 +16,20 @@ export interface DiscordOAuthInfo {
   scope: string;
 }
 
+export interface FortniteDeviceAuth {
+  accountId: string;
+  deviceId: string;
+  secret: string;
+}
+
 export interface UserAccount {
   userId: string;
   discordOAuth?: DiscordOAuthInfo;
   interactionToken?: string;
   externalAccountId?: string;
   epicDisplayName?: string;
+  epicAccountId?: string;
+  fortniteDeviceAuth?: FortniteDeviceAuth;
   preferredSkinId?: string;
   createdAt: Date;
   updatedAt: Date;

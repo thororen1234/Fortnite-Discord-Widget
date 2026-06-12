@@ -1,118 +1,74 @@
 import dotenv from "dotenv";
+import type { FortniteDeviceAuth } from "../database/mongo.js";
 import type { FortniteStats, McpItem, McpLockerData, StatProxyData } from "../types/fortnite.types.js";
+import { decrypt, encrypt } from "../utils/crypto.js";
 
 dotenv.config();
 
-const LAUNCHER_CLIENT_ID = process.env.LAUNCHER_CLIENT_ID || "34a02cf8f4414e29b15921876da36f9a";
-const LAUNCHER_CLIENT_SECRET = process.env.LAUNCHER_CLIENT_SECRET || "daafbccc737745039dffe53d94fc76cf";
-const GAME_CLIENT_ID = process.env.EPIC_CLIENT_ID || "ec684b8c687f479fadea3cb2ad83f5c6";
-const GAME_CLIENT_SECRET = process.env.EPIC_CLIENT_SECRET || "e1f31c211f28413186262d37a13fc84d";
 const ACCOUNT_SERVICE = "https://account-public-service-prod.ol.epicgames.com";
 const STATS_SERVICE = "https://statsproxy-public-service-live.ol.epicgames.com";
 const MCP_SERVICE = "https://fortnite-public-service-prod11.ol.epicgames.com";
-const { DEVICE_AUTH_ACCOUNT_ID, DEVICE_AUTH_DEVICE_ID, DEVICE_AUTH_SECRET } = process.env;
-const HAS_DEVICE_AUTH = DEVICE_AUTH_ACCOUNT_ID && DEVICE_AUTH_DEVICE_ID && DEVICE_AUTH_SECRET;
+const DEVICE_AUTH_CLIENT_ID = "3f69e56c7649492c8cc29f1af08a8a12";
+const DEVICE_AUTH_CLIENT_SECRET = "b51ee9cb12234f50a69efa67ef53812e";
+const BASIC_AUTH = Buffer.from(`${DEVICE_AUTH_CLIENT_ID}:${DEVICE_AUTH_CLIENT_SECRET}`).toString("base64");
 
-let launcherTokenCache: { value: string; expiresAt: number; } | null = null;
-let gameTokenCache: { value: string; expiresAt: number; } | null = null;
-let deviceTokenCache: { value: string; expiresAt: number; } | null = null;
+export async function generateDeviceAuthFromCode(code: string): Promise<FortniteDeviceAuth> {
+  const tokenResponse = await fetch(`${ACCOUNT_SERVICE}/account/api/oauth/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${BASIC_AUTH}`,
+    },
+    body: `grant_type=authorization_code&code=${encodeURIComponent(code)}`,
+  });
 
-async function fetchToken(
-  clientId: string,
-  clientSecret: string,
-  cache: { value: string; expiresAt: number; } | null
-): Promise<{ token: string; cache: { value: string; expiresAt: number; }; }> {
-  if (cache && Date.now() < cache.expiresAt - 60_000) {
-    return { token: cache.value, cache };
+  if (!tokenResponse.ok) {
+    const text = await tokenResponse.text();
+    throw new Error(`Failed to exchange authorization code (${tokenResponse.status}): ${text}`);
   }
 
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const tokenData = await tokenResponse.json() as { access_token: string; account_id: string; };
+
+  const deviceResponse = await fetch(`${ACCOUNT_SERVICE}/account/api/public/account/${tokenData.account_id}/deviceAuth`, {
+    method: "POST",
+    headers: {
+      Authorization: `bearer ${tokenData.access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!deviceResponse.ok) {
+    const text = await deviceResponse.text();
+    throw new Error(`Failed to generate device auth (${deviceResponse.status}): ${text}`);
+  }
+
+  const deviceData = await deviceResponse.json() as { deviceId: string; secret: string; accountId: string; };
+
+  return {
+    accountId: deviceData.accountId,
+    deviceId: deviceData.deviceId,
+    secret: encrypt(deviceData.secret),
+  };
+}
+
+export async function getUserToken(deviceAuth: FortniteDeviceAuth): Promise<string> {
+  const decryptedSecret = decrypt(deviceAuth.secret);
   const response = await fetch(`${ACCOUNT_SERVICE}/account/api/oauth/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${credentials}`,
+      Authorization: `Basic ${BASIC_AUTH}`,
     },
-    body: "grant_type=client_credentials",
+    body: `grant_type=device_auth&account_id=${deviceAuth.accountId}&device_id=${deviceAuth.deviceId}&secret=${decryptedSecret}`,
   });
 
   if (!response.ok) {
     const text = await response.text();
-
-    throw new Error(`Epic auth failed (${response.status}): ${text}`);
+    throw new Error(`User device auth failed (${response.status}): ${text}`);
   }
 
-  const data = (await response.json()) as { access_token: string; expires_in: number; };
-  const newCache = { value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
-
-  return { token: newCache.value, cache: newCache };
-}
-
-async function getDeviceToken(): Promise<string> {
-  if (deviceTokenCache && Date.now() < deviceTokenCache.expiresAt - 60_000) {
-    return deviceTokenCache.value;
-  }
-  if (!HAS_DEVICE_AUTH) {
-    throw new Error("Device Auth is not configured. Please run `npm run login` first.");
-  }
-
-  const DEVICE_AUTH_CLIENT_ID = "3f69e56c7649492c8cc29f1af08a8a12";
-  const DEVICE_AUTH_CLIENT_SECRET = "b51ee9cb12234f50a69efa67ef53812e";
-  const credentials = Buffer.from(`${DEVICE_AUTH_CLIENT_ID}:${DEVICE_AUTH_CLIENT_SECRET}`).toString("base64");
-  const response = await fetch(`${ACCOUNT_SERVICE}/account/api/oauth/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${credentials}`,
-    },
-    body: `grant_type=device_auth&account_id=${DEVICE_AUTH_ACCOUNT_ID}&device_id=${DEVICE_AUTH_DEVICE_ID}&secret=${DEVICE_AUTH_SECRET}`,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-
-    throw new Error(`Device auth failed (${response.status}): ${text}`);
-  }
-
-  const data = (await response.json()) as { access_token: string; expires_in: number; };
-
-  deviceTokenCache = { value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
-  return deviceTokenCache.value;
-}
-
-async function getLauncherToken(): Promise<string> {
-  if (HAS_DEVICE_AUTH) return getDeviceToken();
-
-  const result = await fetchToken(LAUNCHER_CLIENT_ID, LAUNCHER_CLIENT_SECRET, launcherTokenCache);
-
-  launcherTokenCache = result.cache;
-  return result.token;
-}
-
-export async function getGameToken(): Promise<string> {
-  if (HAS_DEVICE_AUTH) return getDeviceToken();
-
-  const result = await fetchToken(GAME_CLIENT_ID, GAME_CLIENT_SECRET, gameTokenCache);
-
-  gameTokenCache = result.cache;
-  return result.token;
-}
-
-async function resolveDisplayName(displayName: string): Promise<string> {
-  const token = await getLauncherToken();
-  const url = `${ACCOUNT_SERVICE}/account/api/public/account/displayName/${encodeURIComponent(displayName)}`;
-  const response = await fetch(url, { headers: { Authorization: `bearer ${token}` } });
-
-  if (response.status === 404) throw new Error(`Epic account not found: "${displayName}"`);
-  if (!response.ok) {
-    const text = await response.text();
-
-    throw new Error(`Epic account lookup failed (${response.status}): ${text}`);
-  }
-
-  const data = (await response.json()) as { id: string; };
-
-  return data.id;
+  const data = await response.json() as { access_token: string; };
+  return data.access_token;
 }
 
 function sumStat(stats: Record<string, number>, prefix: string): number {
@@ -121,10 +77,7 @@ function sumStat(stats: Record<string, number>, prefix: string): number {
     .reduce((acc, [, v]) => acc + (v ?? 0), 0);
 }
 
-
-
-async function fetchLockerData(accountId: string): Promise<McpLockerData> {
-  const token = await getGameToken();
+async function fetchLockerData(accountId: string, token: string): Promise<McpLockerData> {
   const url = `${MCP_SERVICE}/fortnite/api/game/v2/profile/${accountId}/client/QueryProfile?profileId=athena&rvn=-1`;
   const response = await fetch(url, {
     method: "POST",
@@ -244,8 +197,6 @@ async function fetchLockerData(accountId: string): Promise<McpLockerData> {
   };
 }
 
-
-
 function getChapterAndSeason(absoluteSeason: number): string {
   if (absoluteSeason <= 10) return `Chapter 1 Season ${absoluteSeason}`;
   if (absoluteSeason <= 18) return `Chapter 2 Season ${absoluteSeason - 10}`;
@@ -257,8 +208,7 @@ function getChapterAndSeason(absoluteSeason: number): string {
   return `Season ${absoluteSeason}`;
 }
 
-async function fetchStatsData(accountId: string): Promise<StatProxyData> {
-  const token = await getGameToken();
+async function fetchStatsData(accountId: string, token: string): Promise<StatProxyData> {
   const url = `${STATS_SERVICE}/statsproxy/api/statsv2/account/${accountId}?startTime=0&endTime=9223372036854775807`;
   const response = await fetch(url, { headers: { Authorization: `bearer ${token}` } });
 
@@ -289,15 +239,16 @@ async function fetchStatsData(accountId: string): Promise<StatProxyData> {
 
 
 
-export async function getFortniteStats(displayName: string): Promise<FortniteStats> {
+export async function getFortniteStats(deviceAuth: FortniteDeviceAuth, displayName: string): Promise<FortniteStats> {
   try {
-    const accountId = await resolveDisplayName(displayName);
+    const token = await getUserToken(deviceAuth);
+    const accountId = deviceAuth.accountId;
     const [locker, stats] = await Promise.all([
-      fetchLockerData(accountId).catch(err => {
+      fetchLockerData(accountId, token).catch(err => {
         console.warn("[Fortnite] MCP locker fetch failed:", err.message);
         return null;
       }),
-      fetchStatsData(accountId).catch(err => {
+      fetchStatsData(accountId, token).catch(err => {
         console.warn("[Fortnite] Stats fetch failed:", err.message);
         return null;
       }),

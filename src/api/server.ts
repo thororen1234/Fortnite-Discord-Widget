@@ -59,7 +59,12 @@ async function bootstrap() {
 
             const epicDisplayName = account.epicDisplayName || `FortPlayer-${userId.slice(-6)}`;
             const externalAccountId = account.externalAccountId || `EXT-${userId.slice(-8)}`;
-            const stats = await getFortniteStats(epicDisplayName);
+            const deviceAuth = account.fortniteDeviceAuth;
+            if (!deviceAuth) {
+              console.warn(`[RefreshJob] Skipping ${userId} because they haven't authenticated with Epic Games yet.`);
+              continue;
+            }
+            const stats = await getFortniteStats(deviceAuth, epicDisplayName);
             const bpSubtitle = stats.bpComplete
               ? `Level ${stats.bpLevel} Complete`
               : `Level ${stats.bpLevel}`;

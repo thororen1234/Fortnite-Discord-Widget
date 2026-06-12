@@ -17,6 +17,7 @@ export interface ExchangeTokenResponse {
   refresh_token: string;
   scope: string;
 }
+
 export async function exchangeCodeForToken(code: string): Promise<DiscordOAuthInfo> {
   const params = new URLSearchParams();
 
@@ -49,6 +50,7 @@ export async function exchangeCodeForToken(code: string): Promise<DiscordOAuthIn
     scope: data.scope,
   };
 }
+
 export async function refreshOAuthToken(refreshToken: string): Promise<DiscordOAuthInfo> {
   const params = new URLSearchParams();
 

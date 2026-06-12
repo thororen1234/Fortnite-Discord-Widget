@@ -42,13 +42,22 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
   }
   try {
+    const deviceAuth = account.fortniteDeviceAuth;
+    if (!deviceAuth) {
+      const embed = new EmbedBuilder()
+        .setTitle("Epic Games Login Required")
+        .setDescription("You need to grant this bot permission to read your Fortnite stats. Please run `/link` and follow the instructions to provide an Authorization Code.")
+        .setColor(0xffaa00);
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
     const externalAccountId = account.externalAccountId || "EXT-12345678";
     const epicDisplayName = account.epicDisplayName || interaction.user.username;
-    const stats = await getFortniteStats(epicDisplayName);
+    const stats = await getFortniteStats(deviceAuth, epicDisplayName);
     const bpSubtitle = stats.bpComplete
       ? `Level ${stats.bpLevel} Complete`
       : `Level ${stats.bpLevel}`;
-
     const shortSeason = stats.season
       .replace(/Chapter (\d+) Season (\d+)/i, "C$1S$2")
       .replace(/Season (\d+)/i, "S$1");
