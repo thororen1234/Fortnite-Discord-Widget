@@ -62,11 +62,11 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         last_synced: new Date().toISOString(),
         bp_level: String(stats.bpLevel),
         bp_complete: stats.bpComplete ? "true" : "false",
-        season: shortSeason,
+        season: stats.season,
       },
       data: {
         primary: {
-          season: shortSeason,
+          season: stats.season,
           rank_name: bpSubtitle,
           highest_rank: stats.bpComplete ? "Battle Pass: Complete" : "Battle Pass: In Progress",
           playtime_hours: 0,
