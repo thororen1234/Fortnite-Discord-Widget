@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
+import { ApplicationIntegrationType, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } from "discord.js";
 
 import { getUserAccount } from "../../database/mongo.js";
 import { patchApplicationIdentityProfile, refreshOAuthToken } from "../../services/discord.service.js";
@@ -7,7 +7,9 @@ import { DynamicDataType } from "../../types/widget.types.js";
 
 export const data = new SlashCommandBuilder()
   .setName("refresh")
-  .setDescription("Refresh your Fortnite stats on your Discord profile card");
+  .setDescription("Refresh your Fortnite stats on your Discord profile card")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel);
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });

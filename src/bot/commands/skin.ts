@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
+import { ApplicationIntegrationType, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } from "discord.js";
 
 import { updateUserAccount } from "../../database/mongo.js";
 
@@ -10,7 +10,9 @@ export const data = new SlashCommandBuilder()
       .setName("skin_name")
       .setDescription("The name of the Fortnite skin (e.g. 'Raven', 'Peely')")
       .setRequired(true)
-  );
+  )
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel);
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });

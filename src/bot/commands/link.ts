@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
+import { ActionRowBuilder, ApplicationIntegrationType, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } from "discord.js";
 import dotenv from "dotenv";
 
 import { updateUserAccount } from "../../database/mongo.js";
@@ -13,7 +13,9 @@ const EPIC_AUTH_URL = "https://www.epicgames.com/id/api/redirect?clientId=3f69e5
 
 export const data = new SlashCommandBuilder()
   .setName("link")
-  .setDescription("Link your Discord account to your Fortnite / Epic Games profile");
+  .setDescription("Link your Discord account to your Fortnite Account")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+  .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel);
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
