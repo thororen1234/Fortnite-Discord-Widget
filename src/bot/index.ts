@@ -1,20 +1,11 @@
 import { ActionRowBuilder, Client, EmbedBuilder, Events, GatewayIntentBits, ModalBuilder, REST, Routes, TextInputBuilder, TextInputStyle } from "discord.js";
-import dotenv from "dotenv";
 
+import { DISCORD_CLIENT_ID, DISCORD_TOKEN } from "../config.js";
 import { getMongoDatabase, updateUserAccount } from "../database/mongo.js";
 import { generateDeviceAuthFromCode } from "../services/fortnite.service.js";
 import * as linkCommand from "./commands/link.js";
 import * as refreshCommand from "./commands/refresh.js";
 import * as skinCommand from "./commands/skin.js";
-
-dotenv.config();
-
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN || "";
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || "";
-
-if (!DISCORD_TOKEN) {
-  console.warn("DISCORD_TOKEN not set. The bot cannot start.");
-}
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -26,11 +17,6 @@ commandsMap.set(refreshCommand.data.name, refreshCommand);
 commandsMap.set(skinCommand.data.name, skinCommand);
 
 async function registerCommands() {
-  if (!DISCORD_TOKEN || !DISCORD_CLIENT_ID) {
-    console.error("Missing credentials to register commands.");
-    return;
-  }
-
   const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN);
   const body = Array.from(commandsMap.values()).map(cmd => cmd.data.toJSON());
 
@@ -121,8 +107,6 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-if (DISCORD_TOKEN) {
-  client.login(DISCORD_TOKEN).catch(err => {
-    console.error("Failed to log in Discord client:", err);
-  });
-}
+client.login(DISCORD_TOKEN).catch(err => {
+  console.error("Failed to log in Discord client:", err);
+});

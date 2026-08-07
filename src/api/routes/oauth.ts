@@ -1,7 +1,9 @@
 import { Elysia } from "elysia";
 
+import { DISCORD_CLIENT_ID } from "../../config.js";
 import { getUserAccount, updateUserAccount } from "../../database/mongo.js";
 import { exchangeCodeForToken, getUserConnections } from "../../services/discord.service.js";
+import { verifyState } from "../../utils/crypto.js";
 
 export const oauthRoutes = new Elysia();
 
@@ -15,7 +17,14 @@ oauthRoutes.get("/api/auth/discord/callback", async ({ query, set }) => {
     return "Link Failed\nMissing State Parameter\n\nCould not determine your Discord account context. Please restart the linking process by running /link inside Discord.";
   }
 
-  const userId = String(state);
+  const userId = verifyState(String(state));
+
+  if (!userId) {
+    console.error("OAuth callback received an invalid or tampered state parameter");
+    set.status = 400;
+    set.headers = { "content-type": "text/plain; charset=utf-8" };
+    return "Link Failed\nInvalid State Parameter\n\nThis link request could not be verified. Please restart the linking process by running /link inside Discord.";
+  }
 
   if (!code) {
     set.status = 400;
@@ -48,41 +57,38 @@ oauthRoutes.get("/api/auth/discord/callback", async ({ query, set }) => {
     const interactionToken = account?.interactionToken;
 
     if (interactionToken) {
-      const clientId = process.env.DISCORD_CLIENT_ID || "";
-      if (clientId) {
-        await fetch(`https://discord.com/api/v10/webhooks/${clientId}/${interactionToken}/messages/@original`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            embeds: [
-              {
-                title: "Discord Linked!",
-                description: `Successfully linked to Epic Games account: **${epicConnection.name}**\n\n**Next Steps:**\n1. Click **Get Epic Auth Code** below, sign in, and copy the 32-character code.\n2. Click **Enter Code** and paste it there!`,
-                color: 0x00ff00,
-              }
-            ],
-            components: [
-              {
-                type: 1,
-                components: [
-                  {
-                    type: 2,
-                    label: "Get Epic Auth Code",
-                    style: 5,
-                    url: "https://www.epicgames.com/id/api/redirect?clientId=3f69e56c7649492c8cc29f1af08a8a12&responseType=code"
-                  },
-                  {
-                    type: 2,
-                    label: "Enter Code",
-                    style: 1,
-                    custom_id: "enter_epic_code"
-                  }
-                ]
-              }
-            ],
-          }),
-        }).catch(err => console.error("Failed to update interaction:", err));
-      }
+      await fetch(`https://discord.com/api/v10/webhooks/${DISCORD_CLIENT_ID}/${interactionToken}/messages/@original`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [
+            {
+              title: "Discord Linked!",
+              description: `Successfully linked to Epic Games account: **${epicConnection.name}**\n\n**Next Steps:**\n1. Click **Get Epic Auth Code** below, sign in, and copy the 32-character code.\n2. Click **Enter Code** and paste it there!`,
+              color: 0x00ff00,
+            }
+          ],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  label: "Get Epic Auth Code",
+                  style: 5,
+                  url: "https://www.epicgames.com/id/api/redirect?clientId=3f69e56c7649492c8cc29f1af08a8a12&responseType=code"
+                },
+                {
+                  type: 2,
+                  label: "Enter Code",
+                  style: 1,
+                  custom_id: "enter_epic_code"
+                }
+              ]
+            }
+          ],
+        }),
+      }).catch(err => console.error("Failed to update interaction:", err));
     }
 
     set.status = 200;

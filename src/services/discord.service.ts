@@ -1,14 +1,5 @@
-import dotenv from "dotenv";
-
+import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, DISCORD_TOKEN } from "../config.js";
 import type { DiscordOAuthInfo } from "../database/mongo.js";
-
-dotenv.config();
-
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || "";
-const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || "";
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || "";
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN || "";
-const DISCORD_API_BASE_URL = process.env.DISCORD_API_BASE_URL || "https://discord.com/api/v10";
 
 export interface ExchangeTokenResponse {
   access_token: string;
@@ -27,7 +18,7 @@ export async function exchangeCodeForToken(code: string): Promise<DiscordOAuthIn
   params.set("code", code);
   params.set("redirect_uri", DISCORD_REDIRECT_URI);
 
-  const response = await fetch(`${DISCORD_API_BASE_URL}/oauth2/token`, {
+  const response = await fetch("https://discord.com/api/v10/oauth2/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -59,7 +50,7 @@ export async function refreshOAuthToken(refreshToken: string): Promise<DiscordOA
   params.set("grant_type", "refresh_token");
   params.set("refresh_token", refreshToken);
 
-  const response = await fetch(`${DISCORD_API_BASE_URL}/oauth2/token`, {
+  const response = await fetch("https://discord.com/api/v10/oauth2/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -95,7 +86,7 @@ export interface DiscordConnection {
 }
 
 export async function getUserConnections(accessToken: string): Promise<DiscordConnection[]> {
-  const response = await fetch(`${DISCORD_API_BASE_URL}/users/@me/connections`, {
+  const response = await fetch("https://discord.com/api/v10/users/@me/connections", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -129,16 +120,11 @@ export async function patchApplicationIdentityProfile(
   externalUserId: string,
   payload: PatchProfilePayload
 ): Promise<boolean> {
-  const url = `${DISCORD_API_BASE_URL}/applications/${DISCORD_CLIENT_ID}/users/${userId}/identities/${externalUserId}/profile`;
+  const url = `https://discord.com/api/v10/applications/${DISCORD_CLIENT_ID}/users/${userId}/identities/${externalUserId}/profile`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    Authorization: `Bot ${DISCORD_TOKEN}`,
   };
-
-  if (DISCORD_TOKEN) {
-    headers.Authorization = `Bot ${DISCORD_TOKEN}`;
-  } else {
-    throw new Error("Missing Bot Token (DISCORD_TOKEN) in configuration.");
-  }
 
   const response = await fetch(url, {
     method: "PATCH",

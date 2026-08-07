@@ -1,6 +1,6 @@
 import { ApplicationIntegrationType, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } from "discord.js";
 
-import { getUserAccount } from "../../database/mongo.js";
+import { getUserAccount, updateUserAccount } from "../../database/mongo.js";
 import { patchApplicationIdentityProfile, refreshOAuthToken } from "../../services/discord.service.js";
 import { getFortniteStats } from "../../services/fortnite.service.js";
 import { DynamicDataType } from "../../types/widget.types.js";
@@ -32,7 +32,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   if (Date.now() >= oauth.expiresAt) {
     try {
       console.log(`Refreshing Discord OAuth token for user: ${userId}`);
-      await refreshOAuthToken(oauth.refreshToken);
+      const newTokens = await refreshOAuthToken(oauth.refreshToken);
+      await updateUserAccount(userId, { discordOAuth: newTokens });
     } catch (refreshErr) {
       const embed = new EmbedBuilder()
         .setTitle("Re-authentication Required")

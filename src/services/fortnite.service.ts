@@ -1,10 +1,6 @@
-import dotenv from "dotenv";
-
 import type { FortniteDeviceAuth } from "../database/mongo.js";
 import type { FortniteStats, McpItem, McpLockerData, StatProxyData } from "../types/fortnite.types.js";
 import { decrypt, encrypt } from "../utils/crypto.js";
-
-dotenv.config();
 
 const ACCOUNT_SERVICE = "https://account-public-service-prod.ol.epicgames.com";
 const STATS_SERVICE = "https://statsproxy-public-service-live.ol.epicgames.com";

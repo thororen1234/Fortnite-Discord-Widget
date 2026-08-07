@@ -1,12 +1,9 @@
 import { ActionRowBuilder, ApplicationIntegrationType, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, InteractionContextType, MessageFlags, SlashCommandBuilder } from "discord.js";
-import dotenv from "dotenv";
 
+import { DISCORD_CLIENT_ID, DISCORD_REDIRECT_URI } from "../../config.js";
 import { updateUserAccount } from "../../database/mongo.js";
+import { signState } from "../../utils/crypto.js";
 
-dotenv.config();
-
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || "";
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || "";
 const OAUTH_LINK = `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(DISCORD_CLIENT_ID)}&response_type=code&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&scope=openid+sdk.social_layer+connections`;
 
 const EPIC_AUTH_URL = "https://www.epicgames.com/id/api/redirect?clientId=3f69e56c7649492c8cc29f1af08a8a12&responseType=code";
@@ -23,7 +20,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   const userId = interaction.user.id;
   await updateUserAccount(userId, { interactionToken: interaction.token });
 
-  const state = encodeURIComponent(userId);
+  const state = encodeURIComponent(signState(userId));
   const url = `${OAUTH_LINK}&state=${state}`;
   const embed = new EmbedBuilder()
     .setTitle("Link Your Fortnite Account")

@@ -1,10 +1,6 @@
-import dotenv from "dotenv";
 import { type Collection, type Db, MongoClient } from "mongodb";
 
-dotenv.config();
-
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017";
-const MONGO_DB_NAME = process.env.MONGO_DB_NAME || "discord_widgets_epic";
+import { MONGO_DB_NAME, MONGO_URI } from "../config.js";
 
 let client: MongoClient | null = null;
 let db: Db | null = null;

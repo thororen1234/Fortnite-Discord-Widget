@@ -1,16 +1,13 @@
 import { node } from "@elysiajs/node";
-import dotenv from "dotenv";
 import { Elysia } from "elysia";
 
+import { AUTO_REFRESH_DAILY, PORT } from "../config.js";
 import { getAccountsCollection, getMongoDatabase, updateUserAccount } from "../database/mongo.js";
 import { patchApplicationIdentityProfile, refreshOAuthToken } from "../services/discord.service.js";
 import { getFortniteStats } from "../services/fortnite.service.js";
 import { DynamicDataType } from "../types/widget.types.js";
 import { oauthRoutes } from "./routes/oauth.js";
 
-dotenv.config();
-
-const PORT = process.env.PORT || 3000;
 const app = new Elysia({ adapter: node() });
 
 app.use(oauthRoutes);
@@ -29,9 +26,7 @@ async function bootstrap() {
     console.log(`Server started on http://localhost:${PORT}`);
   });
 
-  const enableDaily = process.env.AUTO_REFRESH_DAILY === "true";
-
-  if (enableDaily) {
+  if (AUTO_REFRESH_DAILY) {
     const runDailyRefresh = async () => {
       try {
         console.log("[RefreshJob] Starting daily Fortnite refresh run...");
@@ -63,6 +58,10 @@ async function bootstrap() {
             const bpSubtitle = stats.bpComplete
               ? `Level ${stats.bpLevel} Complete`
               : `Level ${stats.bpLevel}`;
+            const finalSkinId = account.preferredSkinId || stats.equippedSkinId;
+            const finalSkinUrl = account.preferredSkinId
+              ? `https://fortnite-api.com/images/cosmetics/br/${account.preferredSkinId}/icon.png`
+              : stats.equippedSkinImageUrl;
             const profilePayload = {
               username: stats.name,
               metadata: {
@@ -82,11 +81,11 @@ async function bootstrap() {
                   total_kills: stats.kills,
                   server_name: "Fortnite",
                   user_id: externalAccountId,
-                  ...(stats.equippedSkinImageUrl
+                  ...(finalSkinUrl
                     ? {
-                      featured_played_character: stats.equippedSkinId ?? undefined,
+                      featured_played_character: finalSkinId ?? undefined,
                       featured_played_character_image: {
-                        url: stats.equippedSkinImageUrl,
+                        url: finalSkinUrl,
                       },
                     }
                     : {}),
