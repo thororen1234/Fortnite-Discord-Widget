@@ -200,7 +200,7 @@ function getChapterAndSeason(absoluteSeason: number): string {
     case absoluteSeason === 32: return "Fortnite: Remix"; // Chapter 2 Remix
     case absoluteSeason === 35: return "Chapter 6, Season MS1"; // Galactic Battle
     case absoluteSeason === 38: return "Chapter 6, Season MS2"; // The Simpsons
-    case absoluteSeason === 42: return "Chapter 7, Season MS"; // One Piece
+    case absoluteSeason === 43: return "Chapter 7, Season MS"; // One Piece
 
     case absoluteSeason >= 1 && absoluteSeason <= 10:
       return `Chapter 1, Season ${absoluteSeason}`;
@@ -216,10 +216,10 @@ function getChapterAndSeason(absoluteSeason: number): string {
     case absoluteSeason === 34: return "Chapter 6, Season 2";
     case absoluteSeason === 36: return "Chapter 6, Season 3";
     case absoluteSeason === 37: return "Chapter 6, Season 4";
-    case absoluteSeason >= 39 && absoluteSeason <= 41:
+    case absoluteSeason >= 39 && absoluteSeason <= 42:
       return `Chapter 7, Season ${absoluteSeason - 38}`;
-    case absoluteSeason >= 43:
-      return `Chapter 8, Season ${absoluteSeason - 42}`;
+    case absoluteSeason >= 44:
+      return `Chapter 8, Season ${absoluteSeason - 43}`;
 
     default:
       return `Season ${absoluteSeason}`;
