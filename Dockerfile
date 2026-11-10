@@ -3,7 +3,7 @@ WORKDIR /app
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm install -g pnpm
 
 
 COPY package*.json pnpm-*.yaml ./
@@ -20,7 +20,7 @@ ENV GIT_COMMIT=$GIT_COMMIT
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm install -g pnpm
 
 COPY package*.json pnpm-*.yaml ./
 RUN pnpm install --prod --frozen-lockfile
